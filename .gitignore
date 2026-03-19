@@ -3,6 +3,19 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Database / Storage
+qdrant_storage/
+data/*.pdf
+!data/.gitkeep
+
+# Editor secrets
+.vscode/
+.idea/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
 # C extensions
 *.so
 
@@ -37,6 +50,7 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
+tests/
 htmlcov/
 .tox/
 .nox/
