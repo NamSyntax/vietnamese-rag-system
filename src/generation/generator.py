@@ -2,24 +2,20 @@
 import httpx
 import json
 import logging
+from src.core.config import settings # <--- THÊM DÒNG NÀY
 
 logger = logging.getLogger(__name__)
 
 class RAGGenerator:
     def __init__(
         self, 
-        model_name: str = "qwen2.5:7b-instruct", 
-        api_url: str = "http://localhost:11434/api/chat",
-        bot_name: str = "VietRAG Bot",
-        creator_name: str = "NamSyntax",
-        temperature: float = 0.1,
         max_context_length: int = 25000
     ):
-        self.url = api_url
-        self.model_name = model_name
-        self.bot_name = bot_name
-        self.creator_name = creator_name
-        self.temperature = temperature
+        self.url = settings.OLLAMA_BASE_URL
+        self.model_name = settings.LLM_MODEL_NAME
+        self.bot_name = settings.BOT_NAME
+        self.creator_name = settings.CREATOR_NAME
+        self.temperature = settings.LLM_TEMPERATURE
         self.max_context_length = max_context_length
 
     def _build_messages(self, query: str, contexts: list) -> list:
@@ -37,7 +33,6 @@ class RAGGenerator:
         )
 
         # chống tràn context (Overflow Protection)
-        # Sử dụng XML tags để LLM phân tách rõ ràng dữ liệu
         context_parts = []
         current_length = 0
         
@@ -51,7 +46,7 @@ class RAGGenerator:
             
         context_text = "\n\n".join(context_parts)
 
-        # 3. User Content format
+        # usercontent format
         user_content = (
             f"<context>\n{context_text}\n</context>\n\n"
             f"Câu hỏi: {query}"

@@ -1,0 +1,29 @@
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+streamlit>=1.31.0
+pydantic-settings>=2.1.0
+httpx>=0.26.0
+
+# Vector Database & Cache
+qdrant-client>=1.7.0
+redis>=5.0.1
+
+# AI, Embedding & Reranking 
+torch>=2.1.0
+FlagEmbedding>=1.2.0
+sentence-transformers>=2.3.1
+
+# Data Processing & Vi-NLP
+langchain-core>=0.1.10
+langchain-community>=0.0.13
+PyMuPDF>=1.23.8
+underthesea>=6.8.0
+
+# Evaluation
+pandas>=2.2.0
+matplotlib>=3.8.2
+seaborn>=0.13.2
+jupyterlab>=4.1.0
+tqdm>=4.66.1
+nest-asyncio>=1.6.0
