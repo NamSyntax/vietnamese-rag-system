@@ -13,7 +13,7 @@
 
 ## Demo
 <p align="center">
-  <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/Demo.gif" width="700"/>
+  <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/Demo.gif" width="95%"/>
 </p>
 
 ---
@@ -137,7 +137,9 @@ The pipeline independently assesses both the **Retriever** and the **Generator**
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/evaluation_plots/error_distribution_bar.png" width="100%"/>
-  
+</p>
+
+<p align="left">
   <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/evaluation_plots/overall_radar_chart.png" width="60%"/>
 </p>
 
