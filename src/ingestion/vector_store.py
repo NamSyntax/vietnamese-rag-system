@@ -71,9 +71,7 @@ class VectorStoreManager:
         except Exception as e:
             logger.error(f"Error occurred while deleting collection {collection_name}: {e}")
 
-    # ---------------------------
     # Upsert
-    # ---------------------------
     async def upsert_documents(self, documents, collection_name: str, batch_size: int = 64):
         """Nhận collection_name để biết phải nhét dữ liệu vào đâu"""
         total = len(documents)
