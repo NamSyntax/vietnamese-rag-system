@@ -12,7 +12,9 @@
 ---
 
 ## Demo
-
+<p align="center">
+  <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/Demo.gif" width="700"/>
+</p>
 
 ---
 ## Features
@@ -126,6 +128,19 @@ The pipeline independently assesses both the **Retriever** and the **Generator**
    - *Retrieval Failure:* The necessary context was completely missing in the Top-K results.
    - *Context Failure:* The context was retrieved but was too truncated or noisy.
    - *Generation Failure:* The context was perfect, but the LLM failed to extract the answer or hallucinated.
+
+## 📊 Evaluation Results
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/evaluation_plots/metrics_by_question_type.png" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/evaluation_plots/error_distribution_bar.png" width="100%"/>
+  
+  <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/evaluation_plots/overall_radar_chart.png" width="60%"/>
+</p>
+
 
 
 ## Author
