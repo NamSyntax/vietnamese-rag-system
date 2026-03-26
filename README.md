@@ -51,56 +51,63 @@ The system is built with **FastAPI** (backend) and **Streamlit** (frontend), int
 ## Installation
 
 ### Prerequisites
-- Python 3.9+
+- [uv](https://docs.astral.sh/uv/) (Highly Recommend)
 - Docker (for Qdrant and Redis)
 - [Ollama](https://ollama.com) installed locally.
+- Python 3.12+ (managed by `uv`)
 
 ### Setup Steps
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/NamSyntax/vietnamese-rag-system.git](https://github.com/NamSyntax/vietnamese-rag-system.git)
+   git clone https://github.com/NamSyntax/vietnamese-rag-system.git
    cd vietnamese-rag-system
    ```
 
 2. **Install dependencies:**
+   With `uv`, all dependencies and the virtual environment are managed automatically:
    ```bash
-   pip install -r requirements.txt
+   uv sync
    ```
 
 3. **Start required services:**
+   Ensure Docker and Ollama are running, then pull the necessary models:
    ```bash
    # Run Qdrant and Redis via Docker
-    docker run -d -p 6333:6333 qdrant/qdrant
-    docker run -d -p 6379:6379 redis
-    
-    # Pull the local LLM
-    ollama run qwen2.5:7b-instruct
-    ```
+   docker run -d -p 6333:6333 qdrant/qdrant
+   docker run -d -p 6379:6379 redis
+   
+   # Pull the local LLM
+   ollama pull qwen2.5:7b-instruct
+   ```
 
-4. **Environment Variables:**
-   ```bash
-    QDRANT_HOST="localhost"
-    QDRANT_PORT=6333
-    REDIS_URL="redis://localhost:6379"
-    OLLAMA_BASE_URL="http://localhost:11434/api/chat"
-    LLM_MODEL_NAME="qwen2.5:7b-instruct"
-    GEMINI_API_KEY="your_api_key_for_evaluation"
+4. **Environment Configuration:**
+   Create a `.env` file in the root directory (refer to the template below):
+   ```env
+   QDRANT_HOST="localhost"
+   QDRANT_PORT=6333
+   REDIS_URL="redis://localhost:6379"
+   OLLAMA_BASE_URL="http://localhost:11434/api/chat"
+   LLM_MODEL_NAME="qwen2.5:7b-instruct"
+   GEMINI_API_KEY="your_api_key_for_evaluation"
    ```
 
 ## Usage
 
+The system consists of a backend API and a frontend UI.
+
 1. **Start the FastAPI server:**
    ```bash
-   uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+   uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000
    ```
 
 2. **Start the Streamlit UI:**
    ```bash
-   streamlit run src/ui/app.py
+   uv run streamlit run src/ui/app.py
    ```
 
 Open http://localhost:8501 to upload a PDF and start querying.
+
 
 
 ## Evaluation & Benchmarks
