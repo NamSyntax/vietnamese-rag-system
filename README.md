@@ -39,6 +39,10 @@ The system is built with **FastAPI** (backend) and **Streamlit** (frontend), int
 4. **Generation (`src/generation`)**: Constructs context-aware prompts with length protection. Streams responses via **Ollama** running `Qwen2.5:7b-instruct`.
 5. **Caching (`src/core/cache.py`)**: Uses **Redis** to cache LLM responses and manage async background task statuses (e.g., file upload progress).
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/RAGSystemArchitecture.png" width="95%"/>
+</p>
+
 ## Tech Stack
 
 - **Backend:** FastAPI, Python `asyncio`
