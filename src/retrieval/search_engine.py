@@ -1,9 +1,8 @@
-# src/retrieval/search_engine.py
 import logging
 import torch
 import unicodedata
 import asyncio
-import numpy as np # THÊM MỚI
+import numpy as np
 from qdrant_client import models, AsyncQdrantClient
 from FlagEmbedding import BGEM3FlagModel
 from sentence_transformers import CrossEncoder
@@ -13,12 +12,14 @@ from src.core.model_manager import ModelManager
 
 logger = logging.getLogger(__name__)
 
+# remove text accents
 def remove_accents(text: str) -> str:
     return ''.join(
         c for c in unicodedata.normalize('NFD', text)
         if unicodedata.category(c) != 'Mn'
     )
 
+# main rag retriever class
 class RAGRetriever:
     def __init__(self):
         self.client = AsyncQdrantClient("localhost", port=6333)
@@ -31,7 +32,7 @@ class RAGRetriever:
 
     def _expand_query(self, query: str):
         queries = {query.strip(), query.lower().strip(), remove_accents(query).strip()}
-        return list(q for q in queries if q) # Trả về list để giữ thứ tự index
+        return list(q for q in queries if q) # return list to keep index order
 
     def _normalize_sparse(self, sparse_dict):
         if not sparse_dict:
@@ -39,12 +40,13 @@ class RAGRetriever:
         max_val = max(sparse_dict.values()) or 1.0
         return {int(k): float(v / max_val) for k, v in sparse_dict.items()}
 
+    # async hybrid search
     async def search(self, query: str, collection_name: str, top_k: int = 5, score_threshold: float = 0.0):
         segmented_query = segment_vietnamese(query)
         queries = self._expand_query(segmented_query)
         all_hits = {}
 
-        # batch encode: mã hóa cùng lúc (không lặp)
+        # batch encode simultaneously
         emb = await asyncio.to_thread(
             self.embed_model.encode,
             queries,
@@ -52,7 +54,7 @@ class RAGRetriever:
             return_sparse=True
         )
         
-        # ASYNC SEARCH: gửi request tới Qdrant song song
+        # async search parallel qdrant requests
         search_tasks = []
         for i, q in enumerate(queries):
             dense_query = emb["dense_vecs"][i].tolist()
@@ -81,7 +83,7 @@ class RAGRetriever:
             search_tasks.append(task)
 
         try:
-            # nhận kết quả song song
+            # receive results in parallel
             results = await asyncio.gather(*search_tasks)
             for response in results:
                 for hit in response.points:
@@ -95,21 +97,21 @@ class RAGRetriever:
 
         unique_hits = list(all_hits.values())
 
-        # RERANK
+        # rerank
         passages = [hit.payload.get("original_text") or hit.payload.get("content", "") for hit in unique_hits]
         rerank_results = await asyncio.to_thread(
             self.reranker.rank,
             query,
             passages,
             return_documents=True,
-            top_k=min(len(passages), top_k * 4) # lấy nhiều hơn để dự phòng lúc filter
+            top_k=min(len(passages), top_k * 4) # get more for filter buffer
         )
 
-        # SEMANTIC DIVERSITY FILTER (Lọc trùng lặp bằng Vector)
+        # semantic diversity filter
         final_docs = []
         selected_embs = []
         
-        # lấy vector dense của các candidate để tính tương đồng
+        # get dense vectors to calculate similarity
         top_candidates_idx = [res["corpus_id"] for res in rerank_results if res["score"] >= score_threshold]
         top_texts = [unique_hits[idx].payload.get("original_text", "") for idx in top_candidates_idx]
         
@@ -131,10 +133,10 @@ class RAGRetriever:
                 selected_embs.append(current_emb)
                 continue
 
-            # tính độ tương đồng cosine giữa candidate hiện tại và các doc đã chọn
+            # calc cosine sim with selected docs
             sims = np.dot(selected_embs, current_emb) / (np.linalg.norm(selected_embs, axis=1) * np.linalg.norm(current_emb))
             
-            # chọn doc nếu độ tương đồng thấp
+            # select if sim is low
             if np.max(sims) < 0.85:
                 final_docs.append(self._format_hit(original_hit, rerank_results[idx]["score"]))
                 selected_embs.append(current_emb)
@@ -145,6 +147,7 @@ class RAGRetriever:
         logger.info(f"Retrieved {len(final_docs)} diverse documents.")
         return final_docs
 
+    # format search result
     def _format_hit(self, hit, score):
         return {
             "content": hit.payload.get("original_text", ""),

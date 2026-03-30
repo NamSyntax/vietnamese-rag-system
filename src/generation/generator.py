@@ -1,11 +1,11 @@
-# src/generation/generator.py
 import httpx
 import json
 import logging
-from src.core.config import settings # <--- THÊM DÒNG NÀY
+from src.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# rag generation pipeline
 class RAGGenerator:
     def __init__(
         self, 
@@ -19,7 +19,7 @@ class RAGGenerator:
         self.max_context_length = max_context_length
 
     def _build_messages(self, query: str, contexts: list) -> list:
-        # 1. System Instruction: Định hình persona và quy tắc gắt gao
+        # set persona and strict rules
         system_instruction = (
             f"Bạn tên là {self.bot_name}, một trợ lý AI thông minh chuyên giải đáp tài liệu, "
             f"được phát triển bởi {self.creator_name}.\n\n"
@@ -32,7 +32,7 @@ class RAGGenerator:
             "4. Không tự bịa đặt thông tin (No hallucination)."
         )
 
-        # chống tràn context (Overflow Protection)
+        # overflow protection
         context_parts = []
         current_length = 0
         
@@ -46,7 +46,7 @@ class RAGGenerator:
             
         context_text = "\n\n".join(context_parts)
 
-        # usercontent format
+        # user content format
         user_content = (
             f"<context>\n{context_text}\n</context>\n\n"
             f"Câu hỏi: {query}"
@@ -57,6 +57,7 @@ class RAGGenerator:
             {"role": "user", "content": user_content}
         ]
 
+    # async stream answer
     async def generate_stream(self, query: str, contexts: list):
         messages = self._build_messages(query, contexts)
         
@@ -73,7 +74,7 @@ class RAGGenerator:
         }
 
         try:
-            # timeout 60-120s đảm bảo phản hồi
+            # timeout 60-120s
             async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=120.0)) as client:
                 async with client.stream("POST", self.url, json=payload) as response:
                     
@@ -85,7 +86,7 @@ class RAGGenerator:
                                 chunk = json.loads(line)
                                 if "message" in chunk and "content" in chunk["message"]:
                                     content = chunk["message"]["content"]
-                                    # chỉ yield nếu có nội dung thực tế
+                                    # yield only if real content
                                     if content: 
                                         yield content
                                         
@@ -98,7 +99,7 @@ class RAGGenerator:
                                 
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP Error {e.response.status_code} from Ollama")
-            # return lỗi ra app.py thành {"type": "error"}
+            # return error
             raise RuntimeError(f"Server AI trả về lỗi {e.response.status_code}")
             
         except httpx.RequestError as e:

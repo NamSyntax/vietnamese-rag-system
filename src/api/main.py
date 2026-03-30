@@ -1,4 +1,3 @@
-# src/api/main.py
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -18,11 +17,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# app lifecycle manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Đang khởi tạo toàn bộ AI Models (Singleton)...")
     try:
-        # objects - states
+        # objects and states
         app.state.retriever = RAGRetriever()
         app.state.generator = RAGGenerator()
         app.state.vector_store = VectorStoreManager()
@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
         app.state.vector_store = None
         app.state.pipeline = None
 
-# khởi tạo app
+# init app
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 app.add_middleware(

@@ -1,16 +1,16 @@
-# src/api/routers/chat.py
 import json
-import asyncio # THÊM MỚI
+import asyncio
 from fastapi import APIRouter, Query, Depends
 from fastapi.responses import StreamingResponse
 
 from src.retrieval.search_engine import RAGRetriever
 from src.generation.generator import RAGGenerator
 from src.api.dependencies import get_retriever, get_generator
-from src.core.cache import get_cached_response, set_cached_response # THÊM MỚI
+from src.core.cache import get_cached_response, set_cached_response # add cache
 
 router = APIRouter(tags=["Chat"])
 
+    # query rag system
 @router.get("/ask")
 async def ask_rag(
     query: str = Query(...),
@@ -18,14 +18,15 @@ async def ask_rag(
     retriever: RAGRetriever = Depends(get_retriever),
     generator: RAGGenerator = Depends(get_generator)
 ):
+    # stream response generator
     async def stream_result():
         try:
-            # CACHE CHECK
+            # cache check
             cached = await get_cached_response(session_id, query)
             if cached:
-                # Trả về sources
+                # return sources
                 yield json.dumps({"type": "sources", "data": cached["sources"]}) + "\n"
-                # Fake streaming để UX mượt mà
+                # fake streaming for smooth ux
                 words = cached["response"].split(" ")
                 for word in words:
                     yield json.dumps({"type": "content", "data": word + " "}) + "\n"
@@ -39,6 +40,7 @@ async def ask_rag(
                 yield json.dumps({"type": "error", "message": "Phiên làm việc không tồn tại hoặc dữ liệu chưa sẵn sàng. Vui lòng tải file lại."}) + "\n"
                 return
 
+            # handle empty results
             if not relevant_docs:
                 yield json.dumps({"type": "error", "message": "Dựa trên tài liệu bạn tải lên, tôi không tìm thấy thông tin phù hợp."}) + "\n"
                 return
@@ -46,7 +48,7 @@ async def ask_rag(
             sources = [{"page": d.get("page"), "chunk_index": d.get("chunk_index"), "content": d.get("content")} for d in relevant_docs]
             yield json.dumps({"type": "sources", "data": sources}) + "\n"
 
-            # 3. cache response while streaming
+            # cache response while streaming
             full_response_text = ""
             try:
                 async for chunk in generator.generate_stream(query, relevant_docs):

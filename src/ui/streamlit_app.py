@@ -5,9 +5,10 @@ import json
 import uuid
 import time
 
-# --- CẤU HÌNH ---
+# config
 API_BASE_URL = "http://127.0.0.1:8000"
 
+# setup page config
 st.set_page_config(page_title="Vietnamese RAG Dynamic", page_icon="📑", layout="wide")
 
 st.markdown("""
@@ -18,22 +19,22 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- SESSION ---
+# session
 if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())[:8] # Mã định danh duy nhất cho user này
+    st.session_state.session_id = str(uuid.uuid4())[:8] # unique user id
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "is_ready" not in st.session_state:
     st.session_state.is_ready = False
 
-# --- SIDEBAR UI (UPLOAD & MANAGEMENT) ---
+# sidebar ui
 with st.sidebar:
     st.title("🗂️ Quản lý Tài liệu")
     st.caption(f"Phiên làm việc: `{st.session_state.session_id}`")
     
     uploaded_file = st.file_uploader("Tải lên PDF để AI học", type="pdf")
     
-    # Nút dọn dẹp
+    # clear button
     if st.button("🗑️ Xóa dữ liệu & Tạo phiên mới", use_container_width=True):
         if st.session_state.is_ready:
             requests.delete(f"{API_BASE_URL}/session/{st.session_state.session_id}")
@@ -42,19 +43,20 @@ with st.sidebar:
         st.session_state.is_ready = False
         st.rerun()
 
-    # file upload handling
+    # handle file upload
     if uploaded_file is not None and not st.session_state.is_ready:
         st.markdown("---")
         status_placeholder = st.empty()
         
-        # send file to backend
+        # send to backend
         files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
         data = {"session_id": st.session_state.session_id}
         
+        # try upload file
         try:
             res = requests.post(f"{API_BASE_URL}/upload", files=files, data=data)
             if res.status_code == 200:
-                # polling backend for status updates
+                # poll backend status
                 with st.spinner("AI đang đọc tài liệu..."):
                     while True:
                         status_res = requests.get(f"{API_BASE_URL}/status/{st.session_state.session_id}").json()
@@ -72,16 +74,17 @@ with st.sidebar:
                             status_placeholder.error(current_status)
                             break
                         
-                        time.sleep(1.5) # timeout polling
+                        time.sleep(1.5) # poll timeout
             else:
                 st.error("Lỗi khi gửi file lên server.")
         except requests.exceptions.ConnectionError:
             st.error("Không thể kết nối tới Backend. Hãy chắc chắn FastAPI đang chạy.")
 
 
-# --- MAIN UI ---
+# main ui
 st.title("🤖 Trợ lý AI Phân tích Văn bản")
 
+# check ready state
 if not st.session_state.is_ready:
     st.info("👈 Vui lòng tải lên một tài liệu PDF ở cột bên trái để bắt đầu trò chuyện.")
 else:
@@ -89,6 +92,7 @@ else:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
+    # handle user input
     if prompt := st.chat_input("Đặt câu hỏi về tài liệu bạn vừa tải lên..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -105,7 +109,7 @@ else:
             try:
                 response_placeholder.markdown("*(Đang tìm kiếm...)*")
                 
-                # Gắn thêm session_id vào query API
+                # add session id to query
                 ask_url = f"{API_BASE_URL}/ask?query={prompt}&session_id={st.session_state.session_id}"
                 with requests.get(ask_url, stream=True, timeout=120) as r:
                     if r.status_code != 200:

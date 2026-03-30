@@ -1,30 +1,32 @@
-# src/ingestion/vector_store.py
 import hashlib
 import logging
 import torch
-import asyncio # THÊM MỚI: import asyncio
+import asyncio
 
-from qdrant_client import AsyncQdrantClient # SỬA Ở ĐÂY: Dùng AsyncQdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models
 from FlagEmbedding import BGEM3FlagModel
 from src.core.model_manager import ModelManager
 
 logger = logging.getLogger(__name__)
 
+# manage qdrant vector store
 class VectorStoreManager:
     def __init__(self):
-        # SỬA Ở ĐÂY: Khởi tạo AsyncQdrantClient thay vì QdrantClient
+        # init async qdrant client
         self.client = AsyncQdrantClient("localhost", port=6333)
 
         logger.info("vectorStoreManager is connecting to the embedding model...")
         self.model = ModelManager.get_embed_model()
 
 
-    # ------------ Utils ------
+    # utils
 
+    # hash text to int id
     def _generate_id(self, text: str) -> int:
         return int(hashlib.md5(text.encode()).hexdigest(), 16) % (10**12)
 
+    # normalize sparse vectors
     def _normalize_sparse(self, sparse_dict):
         if not sparse_dict:
             return sparse_dict
@@ -32,10 +34,10 @@ class VectorStoreManager:
         return {k: float(v / max_val) for k, v in sparse_dict.items()}
 
 
-    # ---------- Collection Management --------
+    # collection management
     
     async def create_collection(self, collection_name: str):
-        """tạo collection mới theo session_id của người dùng"""
+        """create collection by user session id"""
         collections = await self.client.get_collections()
         exists = any(c.name == collection_name for c in collections.collections)
 
@@ -64,16 +66,16 @@ class VectorStoreManager:
         logger.info(f"Created collection: {collection_name}")
 
     async def delete_collection(self, collection_name: str):
-        """delete collection khi user bắt đầu upload mới để dọn dẹp dữ liệu cũ"""
+        """delete collection on new upload to clear old data"""
         try:
             await self.client.delete_collection(collection_name=collection_name)
             logger.info(f"Deleted collection: {collection_name}")
         except Exception as e:
             logger.error(f"Error occurred while deleting collection {collection_name}: {e}")
 
-    # Upsert
+    # upsert
     async def upsert_documents(self, documents, collection_name: str, batch_size: int = 64):
-        """Nhận collection_name để biết phải nhét dữ liệu vào đâu"""
+        """get collection name to know where to insert"""
         total = len(documents)
         logger.info(f"starting upsert of {total} chunks into '{collection_name}' (batch={batch_size})")
 
@@ -130,10 +132,10 @@ class VectorStoreManager:
                 logger.error(f"error in batch {i//batch_size + 1}: {e}", exc_info=True)
 
 
-    # ------------ Query ---------
+    # query
 
     async def search(self, query: str, collection_name: str, top_k: int = 5):
-        """cần chỉ định collection_name để search đúng"""
+        """must specify collection name for correct search"""
         output = await asyncio.to_thread(
             self.model.encode,
             [query],

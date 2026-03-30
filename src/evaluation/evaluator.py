@@ -1,4 +1,3 @@
-#src/evaluation/evaluator.py
 import os
 import json
 import time
@@ -71,6 +70,7 @@ class SemanticEvaluator:
         self.matcher = CrossEncoder(model_name, max_length=512, device='cuda')
         self.threshold = threshold
 
+    # compute retrieval metrics
     def compute_metrics(self, ground_truths: List[str], retrieved_chunks: List[str], top_k=5) -> Dict[str, float]:
         if not retrieved_chunks or not ground_truths:
             return {"hit_at_k": 0.0, "mrr": 0.0, "recall_at_k": 0.0, "match_ranks": []}
@@ -112,6 +112,7 @@ class LLMEvaluator:
         self.max_retries = max_retries
         self.base_delay = base_delay
 
+    # evaluate single question
     def evaluate(self, question: str, q_type: str, context: str, gen_answer: str, gt_answer: str) -> Dict[str, Any]:
         prompt = f"""
         Bạn là một hệ thống đánh giá AI. Hãy chấm điểm câu trả lời của RAG system dựa trên các thông tin sau.
@@ -155,6 +156,7 @@ class LLMEvaluator:
                     return {"faithfulness_score": 0, "correctness_score": 0, "error": str(e)}
 
 # main pipeline
+# bulk evaluation pipeline
 class EvaluationPipeline:
     def __init__(self, dataset_path: str, output_path: str, api_url: str, session_id: str):
         self.dataset_path = dataset_path
@@ -165,7 +167,7 @@ class EvaluationPipeline:
         self.llm_evaluator = LLMEvaluator()
 
     def _categorize_error(self, q_type: str, hit_at_k: float, faithfulness: int, correctness: int) -> str:
-        """phân loại root cause error"""
+        """categorize root cause error"""
         if q_type == "unanswerable":
             return "Success" if correctness >= 8 else "Generation Failure (Hallucination on Unanswerable)"
 
@@ -175,13 +177,13 @@ class EvaluationPipeline:
         if correctness >= 8:
             return "Success"
             
-        # vùng xám (partial success)
+        # gray area (partial success)
         if 5 <= correctness <= 7:
             if faithfulness >= 8:
                 return "Partial Success (Incomplete Context)"
             return "Partial Success (Generation is noisy/vague)"
             
-        # absolute failure/generation failure
+        # absolute or generation failure
         if correctness < 5:
             if faithfulness >= 8:
                 return "Context Failure (Matched but useless/truncated)"
@@ -281,11 +283,11 @@ class EvaluationPipeline:
         logger.info(f"\nSaved at: {self.output_path}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run Production-grade RAG Evaluation Pipeline.")
+    parser = argparse.ArgumentParser(description="Run RAG Evaluation Pipeline.")
     parser.add_argument("--dataset", type=str, default="data/rag_evaluation_dataset.jsonl", help="Đường dẫn file dataset JSONL")
     parser.add_argument("--output", type=str, default="data/evaluation_production_report.csv", help="Đường dẫn lưu file CSV kết quả")
     parser.add_argument("--api_url", type=str, default="http://127.0.0.1:8000/ask", help="URL của Backend RAG API")
-    parser.add_argument("--session_id", type=str, required=True, help="Session ID đã được nạp dữ liệu trên Qdrant (ví dụ: e66a98a2)")
+    parser.add_argument("--session_id", type=str, required=True, help="Session ID đã được nạp dữ liệu trên Qdrant")
     parser.add_argument("--top_k", type=int, default=8, help="Số lượng chunk tối đa lấy về để đánh giá")
     
     args = parser.parse_args()

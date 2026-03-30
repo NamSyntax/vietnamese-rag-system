@@ -1,18 +1,18 @@
-# src/core/config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from functools import lru_cache
 
+# app settings class
 class Settings(BaseSettings):
-    # --- Cấu hình API chung ---
+    # general api config
     PROJECT_NAME: str = "Vietnamese RAG System"
     API_V1_STR: str = "/api/v1"
     
-    # --- Qdrant (Vector DB) ---
+    # qdrant vector db
     QDRANT_HOST: str = Field(default="localhost", env="QDRANT_HOST")
     QDRANT_PORT: int = Field(default=6333, env="QDRANT_PORT")
     
-    # --- Redis (Cache/Status) ---
+    # redis cache status
     REDIS_URL: str = Field(default="redis://localhost:6379", env="REDIS_URL")
     
     # --- LLM config ---
@@ -20,14 +20,15 @@ class Settings(BaseSettings):
     LLM_MODEL_NAME: str = Field(default="qwen2.5:7b-instruct", env="LLM_MODEL_NAME")
     LLM_TEMPERATURE: float = Field(default=0.1, env="LLM_TEMPERATURE")
     
-    # --- Persona Bot ---
+    # bot persona
     BOT_NAME: str = "VietRAG Bot"
     CREATOR_NAME: str = "NamSyntax"
     
-    # file .env
+    # env file
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 # lru cache (singleton)
+# cached settings instance
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()

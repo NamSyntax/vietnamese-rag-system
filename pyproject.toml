@@ -1,7 +1,7 @@
 [project]
 name = "vietnamese-rag-system"
 version = "0.1.0"
-description = "Add your description here"
+description = "A production-oriented Retrieval-Augmented Generation (RAG) system for Vietnamese."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

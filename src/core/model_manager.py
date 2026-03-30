@@ -1,10 +1,10 @@
-# src/core/model_manager.py
 import logging
 import torch
 from FlagEmbedding import BGEM3FlagModel
 
 logger = logging.getLogger(__name__)
 
+# global model manager
 class ModelManager:
     _embed_model = None
 
