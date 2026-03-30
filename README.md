@@ -7,7 +7,7 @@
 ![Ollama](https://img.shields.io/badge/Ollama-Qwen2.5-black.svg)
 ![Redis](https://img.shields.io/badge/Redis-Caching-dc382d.svg)
 
-> A complete Retrieval-Augmented Generation (RAG) pipeline designed for Vietnamese documents. This project implements a full system architecture from document ingestion and hybrid retrieval to grounded generation and automated evaluation, utilizing local LLMs and async operations.
+> A production-oriented Retrieval-Augmented Generation (RAG) system designed with explicit trade-offs in retrieval quality, latency, and evaluation.
 
 ---
 
@@ -19,12 +19,13 @@
 ---
 ## Features
 
-- Hybrid retrieval (dense + sparse)
-- Query expansion
-- Cross-encoder reranking
-- Async FastAPI pipeline
-- Redis caching
-- LLM-as-a-judge evaluation
+- Hybrid retrieval (dense + sparse) with Reciprocal Rank Fusion (RRF)
+- Query expansion for Vietnamese normalization (case, accent removal)
+- Cross-encoder reranking (BGE-Reranker) for precision optimization
+- Semantic diversity filtering to remove redundant context
+- Async FastAPI pipeline with streaming responses
+- Redis-based exact-match caching for latency reduction
+- LLM-as-a-judge evaluation with automated root cause analysis
 
 ## System Architecture & Workflow
 
@@ -43,6 +44,25 @@ The system is built with **FastAPI** (backend) and **Streamlit** (frontend), int
   <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/RAGSystemArchitecture.png" width="95%"/>
 </p>
 
+## Key Design Insights
+
+This system is not just a RAG implementation — it is built around several critical observations:
+
+- **Hybrid retrieval alone is insufficient**  
+  → Dense + sparse improves recall, but introduces semantic noise.
+
+- **Reranking is mandatory, not optional**  
+  → Cross-encoder reranking significantly improves precision, but adds latency (O(N)).
+
+- **Redundancy is a hidden bottleneck**  
+  → Retrieved chunks often contain overlapping information → solved via cosine-similarity diversity filtering.
+
+- **Exact-match caching works surprisingly well**  
+  → For document QA, repeated queries are common → simple hashing provides high ROI.
+
+- **Evaluation must be decomposed**  
+  → Retrieval and generation are evaluated separately to identify real failure modes.
+
 ## Tech Stack
 
 - **Backend:** FastAPI, Python `asyncio`
@@ -51,6 +71,14 @@ The system is built with **FastAPI** (backend) and **Streamlit** (frontend), int
 - **Caching:** Redis
 - **Models:** BAAI/bge-m3 (Embedding), BAAI/bge-reranker-v2-m3 (Reranking), Qwen2.5:7b-instruct (Generation via Ollama)
 - **NLP:** Underthesea (Vietnamese word segmentation)
+
+## What This System Gets Right
+
+- Separates retrieval quality from generation quality  
+- Uses reranking to correct hybrid retrieval noise  
+- Handles Vietnamese-specific preprocessing (segmentation + normalization)  
+- Implements async streaming for better UX  
+- Includes a full evaluation pipeline with failure diagnosis (not just metrics)
 
 ## Installation
 
@@ -154,7 +182,15 @@ The pipeline independently assesses both the **Retriever** and the **Generator**
   <img src="https://raw.githubusercontent.com/NamSyntax/vietnamese-rag-system/master/docs/evaluation_plots/overall_radar_chart.png" width="60%"/>
 </p>
 
+## Known Limitations
 
+- Cross-encoder reranking introduces latency (O(N) over candidates)
+- No semantic caching (only exact-match caching)
+- BackgroundTasks are not fault-tolerant (no queue / retry mechanism)
+- Performance not benchmarked under high concurrency
+- Context window limits may truncate long documents
+
+> These trade-offs were intentionally accepted to prioritize system clarity and local deployment simplicity.
 
 ## Author
 
