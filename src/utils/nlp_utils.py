@@ -1,13 +1,15 @@
-# src/utils/nlp_utils.py
 import re
 from underthesea import word_tokenize
 
+
+# text cleaning utility
 def clean_vietnamese_text(text: str) -> str:
-    # remove trash characters, normalize whitespace
-    text = re.sub(r'\s+', ' ', text).strip()
-    # kế hoach update: chuẩn hóa unicode
+    # remove trash chars and normalize whitespace
+    text = re.sub(r"\s+", " ", text).strip()
     return text
 
+
+# word segmentation utility
 def segment_vietnamese(text: str) -> str:
-    # chuẩn hóa segment
+    # normalize segment
     return word_tokenize(text, format="text")

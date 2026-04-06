@@ -1,4 +1,3 @@
-# src/api/main.py
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -13,16 +12,17 @@ from src.ingestion.pdf_loader import PDFIngestionPipeline
 from src.api.routers import document, chat
 
 logging.basicConfig(
-    level=logging.INFO, 
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
+
+# app lifecycle manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Đang khởi tạo toàn bộ AI Models (Singleton)...")
     try:
-        # objects - states
+        # objects and states
         app.state.retriever = RAGRetriever()
         app.state.generator = RAGGenerator()
         app.state.vector_store = VectorStoreManager()
@@ -39,12 +39,13 @@ async def lifespan(app: FastAPI):
         app.state.vector_store = None
         app.state.pipeline = None
 
-# khởi tạo app
+
+# init app
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

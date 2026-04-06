@@ -1,39 +1,41 @@
-# src/ingestion/pdf_loader.py
 import os
 import re
 from typing import List
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.documents import Document
-from underthesea import sent_tokenize 
+from underthesea import sent_tokenize
 from src.utils.nlp_utils import clean_vietnamese_text, segment_vietnamese
 import logging
 
 logger = logging.getLogger(__name__)
 
+
+# pdf extraction pipeline
 class PDFIngestionPipeline:
     def __init__(self, max_chunk_length: int = 1000, chunk_overlap: int = 200):
         self.max_chunk_length = max_chunk_length
         self.chunk_overlap = chunk_overlap
 
+    # clean specific text patterns
     def _normalize_text(self, text: str) -> str:
-        text = text.replace('\xa0', ' ')
-        text = re.sub(r'^[\s]*[·•➢o]\s*', '- ', text, flags=re.MULTILINE)
+        text = text.replace("\xa0", " ")
+        text = re.sub(r"^[\s]*[·•➢o]\s*", "- ", text, flags=re.MULTILINE)
         return text
 
     def _is_noise(self, block: str) -> bool:
-        # loại nhanh header/footer của pdf
+        # quickly filter pdf header/footer
         if len(block) < 20:
             return True
-        if re.match(r'^\s*\d+\s*$', block):  # page number
+        if re.match(r"^\s*\d+\s*$", block):  # page number
             return True
         return False
 
-    # Core chunking 
+    # core chunking
     def _hybrid_structural_chunking(self, text: str) -> List[str]:
         text = self._normalize_text(text)
 
-        # split theo structure
-        blocks = re.split(r'\n\s*\n|\n(?=[-\*\+]\s*|\d+\.\s*)', text)
+        # split by structure
+        blocks = re.split(r"\n\s*\n|\n(?=[-\*\+]\s*|\d+\.\s*)", text)
 
         chunks = []
         current_chunk_blocks = []
@@ -46,7 +48,7 @@ class PDFIngestionPipeline:
 
             block_len = len(block)
 
-            # -------- case 1: đoạn quá dài--------
+            # case 1: chunk too long
             if block_len > self.max_chunk_length:
                 if current_chunk_blocks:
                     chunks.append("\n\n".join(current_chunk_blocks))
@@ -61,8 +63,10 @@ class PDFIngestionPipeline:
                     if temp_len + len(sent) > self.max_chunk_length and temp_sentences:
                         chunks.append(" ".join(temp_sentences))
 
-                        # overlap = 2 câu cuối
-                        overlap = temp_sentences[-2:] if len(temp_sentences) >= 2 else temp_sentences
+                        # overlap 2 last sentences
+                        overlap = (
+                            temp_sentences[-2:] if len(temp_sentences) >= 2 else temp_sentences
+                        )
                         temp_sentences = overlap + [sent]
                         temp_len = sum(len(s) for s in temp_sentences) + len(temp_sentences)
 
@@ -76,11 +80,11 @@ class PDFIngestionPipeline:
 
                 continue
 
-            # -------- case 2: block bình thường --------
+            # case 2: normal block
             if current_length + block_len > self.max_chunk_length and current_chunk_blocks:
                 chunks.append("\n\n".join(current_chunk_blocks))
 
-                # overlap block-level
+                # block level overlap
                 overlap_blocks = []
                 overlap_length = 0
 
@@ -102,7 +106,7 @@ class PDFIngestionPipeline:
 
         return chunks
 
-    # --------------------------- Main pipeline ---------------------------
+    # main pipeline
 
     def process_pdf(self, file_path: str) -> List[Document]:
         if not os.path.exists(file_path):
@@ -127,18 +131,20 @@ class PDFIngestionPipeline:
                 segmented_chunk = segment_vietnamese(chunk_text)
 
                 enriched_metadata = doc.metadata.copy()
-                enriched_metadata.update({
-                    "chunk_index": global_chunk_idx,
-                    "chunk_length": len(chunk_text),
-                    "is_list": bool(re.search(r'^[-\*\+]\s', chunk_text)),
-                })
+                enriched_metadata.update(
+                    {
+                        "chunk_index": global_chunk_idx,
+                        "chunk_length": len(chunk_text),
+                        "is_list": bool(re.search(r"^[-\*\+]\s", chunk_text)),
+                    }
+                )
 
                 new_doc = Document(
-                    page_content=segmented_chunk,  # dùng cho embedding
+                    page_content=segmented_chunk,  # used for embedding
                     metadata={
                         **enriched_metadata,
-                        "original_text": chunk_text  # dùng để trả lời
-                    }
+                        "original_text": chunk_text,  # used for answering
+                    },
                 )
 
                 processed_chunks.append(new_doc)
